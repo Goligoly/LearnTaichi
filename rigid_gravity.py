@@ -1,10 +1,11 @@
 import taichi as ti
 import random
+import math
 ti.init(arch=ti.gpu)
 
 WIDTH = 512
 HEIGHT = 512
-Radius = 5
+Radius = 10
 
 MASS = 20
 GRAVITY = ti.Vector([0, -200])
@@ -14,16 +15,24 @@ particleMax = 256
 particleNum = ti.field(ti.i32, shape=())
 x = ti.Vector(2, dt=ti.f32, shape=particleMax)
 v = ti.Vector(2, dt=ti.f32, shape=particleMax)
+f = ti.Vector(2, dt=ti.f32, shape=particleMax)
 
 
 @ti.kernel
 def step():
     for i in range(particleNum[None]):
+        # f[i] = GRAVITY*MASS
+        # for j in range(particleNum[None]):
+        #     if i != j and (x[i] - x[j]).norm() < Radius*2:
+        #         f[i] += (MASS*v[j] - MASS*v[i])/dt
+        # v[i] += f[i]*dt/MASS
+        #边界反弹
         v[i] += GRAVITY*dt
         if x[i][0] <= Radius or x[i][0] >= WIDTH:
-            v[i][0] = -v[i][0]
+            v[i][0] *= -1
         if x[i][1] <= Radius or x[i][1] >= HEIGHT:
-            v[i][1] = -v[i][1]
+            v[i][1] *= -1
+
         x[i] += v[i]*dt
 
 
@@ -42,8 +51,10 @@ while True:
             exit()
         elif e.key == ti.GUI.LMB:
             newParticle(e.pos[0]*WIDTH, e.pos[1]*HEIGHT)
+        elif e.key == 'r':
+            particleNum[None] = 0
     step()
     for i in range(particleNum[None]):
         gui.circle((x[i][0]/WIDTH, x[i][1]/HEIGHT),
-                   color=0xFF6EB4, radius=Radius)
+                   color= 0xff00ff, radius=Radius)
     gui.show()
