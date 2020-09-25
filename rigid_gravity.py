@@ -8,7 +8,7 @@ HEIGHT = 512
 Radius = 10
 
 MASS = 20
-GRAVITY = ti.Vector([0, -200])
+GRAVITY = ti.Vector([0, -400])
 dt = 0.01667
 
 particleMax = 256
@@ -21,17 +21,19 @@ f = ti.Vector(2, dt=ti.f32, shape=particleMax)
 @ti.kernel
 def step():
     for i in range(particleNum[None]):
-        # f[i] = GRAVITY*MASS
+        f[i] = GRAVITY*MASS
+        if v[i].norm() > 0:  f[i] += v[i].normalized()*(-3*v[i].norm())
         # for j in range(particleNum[None]):
         #     if i != j and (x[i] - x[j]).norm() < Radius*2:
         #         f[i] += (MASS*v[j] - MASS*v[i])/dt
         # v[i] += f[i]*dt/MASS
         #边界反弹
-        v[i] += GRAVITY*dt
+        v[i] += f[i]*dt/MASS
         if x[i][0] <= Radius or x[i][0] >= WIDTH:
             v[i][0] *= -1
-        if x[i][1] <= Radius or x[i][1] >= HEIGHT:
-            v[i][1] *= -1
+        if x[i][1] <= Radius:
+            v[i][1] *= -0.8
+            x[i][1] = Radius
 
         x[i] += v[i]*dt
 
@@ -50,7 +52,8 @@ while True:
         if e.key in [ti.GUI.ESCAPE, ti.GUI.EXIT]:
             exit()
         elif e.key == ti.GUI.LMB:
-            newParticle(e.pos[0]*WIDTH, e.pos[1]*HEIGHT)
+            if particleNum[None] < particleMax:
+                newParticle(e.pos[0]*WIDTH, e.pos[1]*HEIGHT)
         elif e.key == 'r':
             particleNum[None] = 0
     step()
